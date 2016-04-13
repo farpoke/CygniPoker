@@ -53,7 +53,7 @@ namespace Cygni.PokerClient.Communication.Events
         public long InvestmentInPot { get; set; }
     }
 
-    class PlayerForceFoldedEvent : TexasEvent
+    class PlayerForcedFoldedEvent : TexasEvent
     {
         public GamePlayer Player { get; set; }
         public long InvestmentInPot { get; set; }

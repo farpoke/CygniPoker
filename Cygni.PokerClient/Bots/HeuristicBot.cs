@@ -11,7 +11,9 @@ namespace Cygni.PokerClient.Bots
 {
 	class HeuristicBot : AbstractBot
 	{
-		const int ESTIMATE_SAMPLE_COUNT = 1000;
+		const int ESTIMATE_SAMPLE_COUNT = 500;
+
+		const int STARTING_CHIPS = 10000;
 
 		const float RAISE_THRESHOLD = 0.8f;
 		const float CALL_THRESHOLD = 0.5f;
@@ -30,23 +32,43 @@ namespace Cygni.PokerClient.Bots
 		private float winEstimate;
 		private bool estimateOutOfDate = true;
 
+		private long chips;
+		private long spentThisPlay;
+
+		private bool allIn;
+
 		public override Action Act(ActionRequest request, GameState state) {
-			// Update win estimate as required.
 			UpdateEstimate(state);
 
 			string can_do = string.Join(", ", request.PossibleActions.Select(x => x.ActionType.ToString()));
-			logger.Debug("{0}, Win Estimate: {1} (can {2})", state.CurrentPlayState, winEstimate, can_do.Trim());
+			logger.Debug("{0}, spent ${3}, Win Estimate: {1} (can {2})", 
+				state.CurrentPlayState, winEstimate, can_do.Trim(), spentThisPlay);
+
+			Action choice = Decide(request, state);
+			spentThisPlay += choice.Amount;
+			return choice;
+		}
+
+		Action Decide(ActionRequest request, GameState state) {
+			long spend_limit = (long)((chips - spentThisPlay) * winEstimate);
+			long action_limit = spend_limit - spentThisPlay;
+			bool may_raise = (request.Raise != null) && (request.Raise.Amount < action_limit);
+			bool may_call = (request.Call != null) && (request.Call.Amount < action_limit);
 
 			if ((winEstimate > LAST_RESORT_THRESHOLD) && (request.AllIn.Amount < state.BigBlind))
 				return request.AllIn; // Almost out of money, go all in on >50% chance.
-			else if ((winEstimate > RAISE_THRESHOLD) && (request.Raise != null))
+			else if ((winEstimate > RAISE_THRESHOLD) && may_raise)
 				return request.Raise; // Good chance to win, try to raise.
-			else if ((winEstimate > CALL_THRESHOLD) && (request.Call != null))
+			else if ((winEstimate > CALL_THRESHOLD) && may_call)
 				return request.Call; // Ok chance to win call if possible.
-			else if ((winEstimate > STAY_THRESHOLD) && (request.Call != null) && (state.CurrentPlayState >= PlayState.RIVER))
+			else if ((winEstimate > STAY_THRESHOLD) && may_call && (state.CurrentPlayState > PlayState.TURN))
 				return request.Call; // Almost over, keep calling if we got this far.
 			else if (request.Check != null)
 				return request.Check; // Always check if able.
+			else if ((winEstimate > CALL_THRESHOLD) && (state.CurrentPlayState > PlayState.FLOP) && (request.AllIn != null) && !allIn)
+				return request.AllIn; // Wan't to call, but have to all-in. But only if no one else went all-in first.
+			else if ((winEstimate > STAY_THRESHOLD) && (state.CurrentPlayState > PlayState.TURN) && (request.AllIn != null) && !allIn)
+				return request.AllIn; // Wan't to stay and call, but have to all-in. But only if no one else went all-in first.
 			else
 				return request.Fold; // No confidence, fold.
 		}
@@ -61,6 +83,10 @@ namespace Cygni.PokerClient.Bots
 				availableCards.Add(new Card(r, Suit.HEARTS));
 				availableCards.Add(new Card(r, Suit.SPADES));
 			}
+			estimateOutOfDate = true;
+			chips = STARTING_CHIPS;
+			spentThisPlay = 0;
+			allIn = false;
 		}
 
 		void UpdateEstimate(GameState state) {
@@ -126,7 +152,7 @@ namespace Cygni.PokerClient.Bots
 			for (int sample_index = 0; sample_index < ESTIMATE_SAMPLE_COUNT; sample_index++) {
 				var other_hand = RandomDraw();
 				PokerHand other_hand_type = evaluator.Evaluate(other_hand.Concat(communityCards).ToArray());
-				if (my_hand_type > other_hand_type)
+				if (my_hand_type >= other_hand_type)
 					win_count++;
 			}
 			return win_count / (float)ESTIMATE_SAMPLE_COUNT;
@@ -148,6 +174,16 @@ namespace Cygni.PokerClient.Bots
 			communityCards.Add(e.Card);
 			availableCards.Remove(e.Card);
 			estimateOutOfDate = true;
+		}
+
+		protected override void OnPlayerWentAllIn(PlayerWentAllInEvent e, GameState state)
+		{
+			allIn = true;
+		}
+
+		protected override void OnYouWonAmountEvent(YouWonAmountEvent e, GameState state)
+		{
+			chips = e.YourChipAmount;
 		}
 
 	}

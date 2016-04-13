@@ -30,7 +30,7 @@ namespace Cygni.PokerClient.Game
 
         public double Pot { get; set; }
 
-		int playIndex;
+		public int PlayIndex { get; private set; }
 
         public GameState()
         {
@@ -54,6 +54,8 @@ namespace Cygni.PokerClient.Game
                 OnPlayerFolded(msg as PlayerFoldedEvent);
             if (msg is PlayerQuitEvent)
                 OnPlayerQuit(msg as PlayerQuitEvent);
+			if (msg is PlayerForcedFoldedEvent)
+				OnPlayerForcedFolded(msg as PlayerForcedFoldedEvent);
             if (msg is PlayerRaisedEvent)
                 OnPlayerRaisedEvent(msg as PlayerRaisedEvent);
             if (msg is PlayerWentAllInEvent)
@@ -112,6 +114,7 @@ namespace Cygni.PokerClient.Game
         {
             var sb = new StringBuilder();
             sb.AppendLine("Showdown between: " + string.Join(", ", e.PlayersShowDown.Select(p => p.Player)));
+			//sb.AppendLine("Showdown between: " + string.Join(", ", PlayersInCurrentPlay));
             foreach (var p in e.PlayersShowDown)
             {
                 sb.AppendLine(string.Format("{0} shows {1} wins ${2}", p.Player, p.Hand.PokerHand, p.WonAmount));
@@ -144,7 +147,7 @@ namespace Cygni.PokerClient.Game
             PlayersInCurrentPlay.Remove(e.Player);
         }
 
-        private void OnPlayerForceFolded(PlayerForceFoldedEvent e)
+        private void OnPlayerForcedFolded(PlayerForcedFoldedEvent e)
         {
             logger.Debug("{0} was forced to fold", e.Player);
             PlayersInCurrentPlay.Remove(e.Player);
@@ -178,15 +181,15 @@ namespace Cygni.PokerClient.Game
         {
             Reset();
 			if (TableId == e.TableId)
-				playIndex++;
+				PlayIndex++;
 			else
-				playIndex = 0;
+				PlayIndex = 0;
             TableId = e.TableId;
             PlayersAtTable.AddRange(e.Players);
             PlayersInCurrentPlay.AddRange(e.Players);
             BigBlind = e.BigBlindAmount;
 			SmallBlind = e.SmallBlindAmount;
-			logger.Info("Play started, table {0}, play {1}", TableId, playIndex);
+			logger.Info("Play started, table {0}, play {1}", TableId, PlayIndex);
         }
 
         private void OnPlayerBetSmallBlind(PlayerBetSmallBlindEvent e)

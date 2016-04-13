@@ -25,12 +25,19 @@ namespace Cygni.PokerClient
         private static AbstractBot bot;
 		private static StatusWindow statusWindow;
 
+		private static bool shouldQuit = false;
+
         static void PrintInfo() {
             var assembly = Assembly.GetExecutingAssembly();
             var title_attr = assembly.GetCustomAttribute<AssemblyTitleAttribute>();
             logger.Info("{0} v{1}", title_attr.Title, assembly.GetName().Version);
             logger.Info("Bot:{0} {1}", bot.Name, bot.GetType().Name);
         }
+
+		static void PumpGtk() {
+			while (Application.EventsPending())
+				Application.RunIteration();
+		}
 
         static void Run() {
 			statusWindow.Show();
@@ -44,25 +51,28 @@ namespace Cygni.PokerClient
                 logger.Info("Entering {0}, waiting for play to start...", roomName);
                 socket.Send(new RegisterForPlayRequest(bot.Name, roomName));
 
-                while (true) {
+                while (!shouldQuit) {
                     foreach (var msg in socket.Receive()) {
                         if (msg is ActionRequest) {
                             var request = msg as ActionRequest;
                             var action = bot.Act(request, gameState);
                             var response = new ActionResponse(action, request.RequestId);
-                            logger.Debug("Bot chose to {0} for {1}$", action.ActionType, action.Amount);
+                            logger.Debug("Bot chose to {0} for ${1}", action.ActionType, action.Amount);
                             socket.Send(response);
                         }
                         else {
                             gameState.UpdateFrom(msg);
 							bot.UpdateFrom(msg, gameState);
+							statusWindow.UpdateFrom(msg, gameState);
                             if (msg is TableIsDoneEvent) {
                                 logger.Info("View at http://{0}/showgame/table/{1}", serverName, gameState.TableId);
                             }
                         }
-						Application.RunIteration();
+						PumpGtk();
+						if (shouldQuit)
+							break;
 					}
-					Application.RunIteration();
+					PumpGtk();
                 }
             }
         }
@@ -71,6 +81,7 @@ namespace Cygni.PokerClient
             try {
 				Application.Init();
 				statusWindow = new StatusWindow();
+				statusWindow.Destroyed += (sender, e) => { shouldQuit = true; };
 				bot = new HeuristicBot();
                 PrintInfo();
                 Run();
