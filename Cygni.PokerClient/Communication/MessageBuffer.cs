@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,7 +8,7 @@ namespace Cygni.PokerClient.Communication
 {
     public class MessageBuffer
     {
-        private string halfReceivedMessage = String.Empty;
+        private string halfReceivedMessage = string.Empty;
         private Queue<string> messageStrings = new Queue<string>();
         private string delimiter;
 

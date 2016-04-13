@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Resources;
@@ -16,6 +16,8 @@ namespace Cygni.PokerClient.Game
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        public long TableId { get; private set; }
+
         public PlayState CurrentPlayState { get; private set; }
         public double BigBlind { get; private set; }
         public double SmallBlind { get; private set; }
@@ -27,6 +29,8 @@ namespace Cygni.PokerClient.Game
         public List<GamePlayer> PlayersInCurrentPlay { get; private set; }
 
         public double Pot { get; set; }
+
+		int playIndex;
 
         public GameState()
         {
@@ -71,23 +75,23 @@ namespace Cygni.PokerClient.Game
             if (msg is YouWonAmountEvent)
                 OnYouWonAmountEvent(msg as YouWonAmountEvent);
             if (msg is UnknownMessage)
-                logger.Log(LogLevel.Error, "Unknow message received from server: " + ((msg as UnknownMessage).StringData));
+                logger.Error("Unknow message received from server: " + ((msg as UnknownMessage).StringData));
         }
 
         private void OnYouWonAmountEvent(YouWonAmountEvent e)
         {
-            logger.Log(LogLevel.Info, String.Format("You won {0}$ and now have {1}$", e.WonAmount, e.YourChipAmount));
+            logger.Info("You won ${0} and now have ${1}", e.WonAmount, e.YourChipAmount);
         }
 
         private void OnYouHaveBeenDealtACard(YouHaveBeenDealtACardEvent e)
         {
-            logger.Log(LogLevel.Info, String.Format("You won been dealt a card {0}", e.Card));
+            logger.Debug("You have been dealt a card {0}", e.Card);
             OwnCards.Add(e.Card);
         }
 
         private void OnTableIsDone(TableIsDoneEvent e)
         {
-            logger.Log(LogLevel.Info, String.Format("Table is done"));
+            logger.Info("Table is done");
             Reset();
         }
 
@@ -107,87 +111,93 @@ namespace Cygni.PokerClient.Game
         private void OnShowDown(ShowDownEvent e)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("Showdown between: " + String.Join(", ", e.PlayersShowDown.Select(p => p.Player)));
+            sb.AppendLine("Showdown between: " + string.Join(", ", e.PlayersShowDown.Select(p => p.Player)));
             foreach (var p in e.PlayersShowDown)
             {
-                sb.AppendLine(String.Format("{0} shows {1} wins {2}$", p.Player, p.Hand.PokerHand, p.WonAmount));
+                sb.AppendLine(string.Format("{0} shows {1} wins ${2}", p.Player, p.Hand.PokerHand, p.WonAmount));
             }
-            logger.Log(LogLevel.Info, sb.ToString());
+            logger.Info(sb.ToString());
         }
 
         private void OnServerIsShuttingDown(ServerIsShuttingDownEvent e)
         {
-            logger.Log(LogLevel.Info, "Server is shutting down");
+            logger.Warn("Server is shutting down");
+            throw new ServerShutdownException();
         }
 
         private void OnPlayerWentAllIn(PlayerWentAllInEvent e)
         {
-            logger.Log(LogLevel.Info, String.Format("{0} went all-in for {1}$", e.Player, e.AllInAmount));
+            logger.Debug("{0} went all-in for ${1}", e.Player, e.AllInAmount);
             Pot += e.AllInAmount;
         }
 
         private void OnPlayerRaisedEvent(PlayerRaisedEvent e)
         {
-            logger.Log(LogLevel.Info, String.Format("{0} raised {1}$", e.Player, e.RaiseBet));
+            logger.Debug("{0} raised ${1}", e.Player, e.RaiseBet);
             Pot += e.RaiseBet;
         }
 
         private void OnPlayerQuit(PlayerQuitEvent e)
         {
-            logger.Log(LogLevel.Info, String.Format("{0} quit", e.Player));
+            logger.Info("{0} quit", e.Player);
             PlayersAtTable.Remove(e.Player);
             PlayersInCurrentPlay.Remove(e.Player);
         }
 
         private void OnPlayerForceFolded(PlayerForceFoldedEvent e)
         {
-            logger.Log(LogLevel.Info, String.Format("{0} was forced to fold", e.Player));
+            logger.Debug("{0} was forced to fold", e.Player);
             PlayersInCurrentPlay.Remove(e.Player);
         }
 
         private void OnPlayerFolded(PlayerFoldedEvent e)
         {
-            logger.Log(LogLevel.Info, String.Format("{0} folded", e.Player));
+            logger.Debug("{0} folded", e.Player);
             PlayersInCurrentPlay.Remove(e.Player);
         }
 
         private void OnPlayerChecked(PlayerCheckedEvent e)
         {
-            logger.Log(LogLevel.Info, String.Format("{0} checked", e.Player));
+            logger.Debug("{0} checked", e.Player);
             PlayersInCurrentPlay.Remove(e.Player);
         }
 
         private void OnPlayerCalled(PlayerCalledEvent e)
         {
-            logger.Log(LogLevel.Info, String.Format("{0} called for {1}$", e.Player, e.CallBet));
+            logger.Debug("{0} called for ${1}", e.Player, e.CallBet);
             Pot += e.CallBet;
         }
 
         private void OnCommunityHasBeedDealtACard(CommunityHasBeenDealtACardEvent e)
         {
-            logger.Log(LogLevel.Info, String.Format("Community card dealt: {0}", e.Card));
+            logger.Debug("Community card dealt: {0}", e.Card);
             CommunityCards.Add(e.Card);
         }
 
         private void OnPlayIsStarted(PlayIsStartedEvent e)
         {
-            logger.Log(LogLevel.Info, String.Format("Play started"));
             Reset();
+			if (TableId == e.TableId)
+				playIndex++;
+			else
+				playIndex = 0;
+            TableId = e.TableId;
             PlayersAtTable.AddRange(e.Players);
             PlayersInCurrentPlay.AddRange(e.Players);
             BigBlind = e.BigBlindAmount;
-            SmallBlind = e.SmallBlindAmount;
+			SmallBlind = e.SmallBlindAmount;
+			logger.Info("Play started, table {0}, play {1}", TableId, playIndex);
         }
 
         private void OnPlayerBetSmallBlind(PlayerBetSmallBlindEvent e)
         {
-            logger.Log(LogLevel.Info, String.Format("{0} bet small blind {1}$", e.Player, e.SmallBlind));
+            logger.Debug("{0} bet small blind ${1}", e.Player, e.SmallBlind);
             Pot += e.SmallBlind;
         }
 
         private void OnPlayerBetBigBlind(PlayerBetBigBlindEvent e)
         {
-            logger.Log(LogLevel.Info, String.Format("{0} bet big blind {1}$", e.Player, e.BigBlind));
+            logger.Debug("{0} bet big blind ${1}", e.Player, e.BigBlind);
             Pot += e.BigBlind;
         }
     }

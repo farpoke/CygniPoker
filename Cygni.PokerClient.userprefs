@@ -1,0 +1,15 @@
+﻿<Properties StartupItem="Cygni.PokerClient/Cygni.PokerClient.csproj">
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="Cygni.PokerClient/Game/PokerHand.cs">
+    <Files>
+      <File FileName="Cygni.PokerClient/Bots/AbstractBot.cs" Line="1" Column="1" />
+      <File FileName="Cygni.PokerClient/Bots/HeuristicBot.cs" Line="8" Column="3" />
+      <File FileName="Cygni.PokerClient/Game/HandEvaluator.cs" Line="1" Column="1" />
+      <File FileName="Cygni.PokerClient/Game/PokerHand.cs" Line="1" Column="1" />
+    </Files>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+</Properties>

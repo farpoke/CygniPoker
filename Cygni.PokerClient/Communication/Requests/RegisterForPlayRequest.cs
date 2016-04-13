@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,8 +8,8 @@ namespace Cygni.PokerClient.Communication.Requests
 {
     public class RegisterForPlayRequest:TexasRequest
     {
-        public String Name { get; set; }
-        public String Room { get; set; }
+        public string Name { get; set; }
+        public string Room { get; set; }
 
         public RegisterForPlayRequest(string name, string room)
             : base("se.cygni.texasholdem.communication.message.request.RegisterForPlayRequest")

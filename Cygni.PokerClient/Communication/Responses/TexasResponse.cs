@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +8,6 @@ namespace Cygni.PokerClient.Communication.Responses
 {
     public class TexasResponse : TexasMessage
     {
-        public String RequestId { get; set; }
+        public string RequestId { get; set; }
     }
 }

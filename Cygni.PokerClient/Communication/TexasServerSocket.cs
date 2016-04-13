@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
@@ -9,6 +9,7 @@ using Cygni.PokerClient.Communication.Requests;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using NLog;
+using System.Text.RegularExpressions;
 
 namespace Cygni.PokerClient.Communication
 {
@@ -32,8 +33,8 @@ namespace Cygni.PokerClient.Communication
 
         public void Connect()
         {
-            logger.Log(LogLevel.Info, String.Format("Connecting to {0}:{1}", serverName, portNumber));
-            socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            logger.Info("Connecting to {0}:{1}", serverName, portNumber);
+			socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             socket.Connect(serverName, portNumber);
             messageFactory = new MessageFactory();
             messageBuffer = new MessageBuffer(delimiter);
@@ -45,7 +46,7 @@ namespace Cygni.PokerClient.Communication
                 JsonConvert.SerializeObject(msg, Formatting.None,
                     new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() }) +
                 delimiter;
-            logger.Log(LogLevel.Trace, "Sending " + json);
+            logger.Trace("Sending " + json);
             var bytes = Encoding.ASCII.GetBytes(json);
             socket.Send(bytes);
         }
@@ -58,7 +59,7 @@ namespace Cygni.PokerClient.Communication
             messageBuffer.Input(Encoding.ASCII.GetString(buffer, 0, i));
             foreach (var msg in messageBuffer.ReadMessages())
             {
-                logger.Log(LogLevel.Trace, "Received " + msg);
+                logger.Trace("Received " + msg);
                 yield return messageFactory.CreateMessage(msg);
             }
         }

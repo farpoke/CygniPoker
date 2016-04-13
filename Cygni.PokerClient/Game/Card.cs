@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,7 +24,18 @@ namespace Cygni.PokerClient.Game
 
         public override string ToString()
         {
-            return String.Format("{0} of {1}", Rank, Suit);
+            return string.Format("{0} of {1}", Rank, Suit);
         }
+
+		public override int GetHashCode()
+		{
+			return Rank.GetHashCode() ^ Suit.GetHashCode() << 5;
+		}
+
+		public override bool Equals(object obj)
+		{
+			Card other = obj as Card;
+			return (other != null) && (other.Rank == Rank) && (other.Suit == Suit);
+		}
     }
 }

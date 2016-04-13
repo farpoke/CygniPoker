@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -43,7 +43,7 @@ namespace Cygni.PokerClient.Game
             if (pairs.Any())
                 return PokerHand.ONE_PAIR;
 
-            return PokerHand.NOTHING;
+            return PokerHand.HIGH_HAND;
         }
 
         private Card[] FindStraight(IEnumerable<Card> cards)
