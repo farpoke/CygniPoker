@@ -19,8 +19,11 @@ namespace Cygni.PokerClient
 
 		List<long> chipHistory = new List<long>();
 
-		List<Tuple<float,float>> estimateHistory = new List<Tuple<float,float>>();
-		List<float> estimateShortTermHistory = new List<float>();
+		List<Tuple<double,double>> estimateHistory = new List<Tuple<double,double>>();
+		List<double> estimateShortTermHistory = new List<double>();
+
+		List<double> diffHistory = new List<double>();
+		List<double> correlationHistory = new List<double>();
 
 		long _chips = 0;
 		long Chips {
@@ -29,10 +32,11 @@ namespace Cygni.PokerClient
 				_chips = value;
 				chipHistory.Add(_chips);
 				bottomLabelLeft.Text = "Chips: $" + _chips.ToString();
-				estimateHistory.Add(new Tuple<float, float>(
+				estimateHistory.Add(new Tuple<double, double>(
 					estimateShortTermHistory.FirstOrDefault(), estimateShortTermHistory.LastOrDefault()
 				));
 				estimateShortTermHistory.Clear();
+				UpdateCorrelation ();
 				drawingArea.QueueDraw();
 			}
 		}
@@ -112,6 +116,8 @@ namespace Cygni.PokerClient
 			chipHistory.Clear();
 			estimateHistory.Clear();
 			estimateShortTermHistory.Clear();
+			diffHistory.Clear();
+			correlationHistory.Clear();
 			_chips = 10000;
 		}
 
@@ -139,7 +145,8 @@ namespace Cygni.PokerClient
 		}
 
 		void OnYouWonAmount(YouWonAmountEvent e, GameState state) {
-			var diff = e.YourChipAmount - Chips;
+            var diff = e.YourChipAmount - Chips;
+            diffHistory.Add(diff / (double)Chips);
 			Chips = e.YourChipAmount;
 			var result = diff < 0 ? (diff < -5000 ? "Big Loss" : "Loss") : "Win";
 			UpdatePlayLogValues(playIndex.ToString(), diff.ToString(), Chips.ToString(), result);
@@ -164,28 +171,31 @@ namespace Cygni.PokerClient
 			Gdk.GC gc_chips = new Gdk.GC(window);
 			gc_chips.SetLineAttributes(2, LineStyle.Solid, CapStyle.Butt, JoinStyle.Bevel);
 
-			Gdk.GC gc_first_estimate = new Gdk.GC(window);
-			gc_first_estimate.RgbFgColor = new Color(255, 50, 50);
+			Gdk.GC gc_red = new Gdk.GC(window);
+			gc_red.RgbFgColor = new Color(255, 50, 50);
 
-			Gdk.GC gc_last_estimate = new Gdk.GC(window);
-			gc_last_estimate.RgbFgColor = new Color(128, 128, 255);
+			Gdk.GC gc_blue = new Gdk.GC(window);
+			gc_blue.RgbFgColor = new Color(128, 128, 255);
 
 			int skip_count = chipHistory.Count - area.Width / 5;
 			if (skip_count < 0)
 				skip_count = 0;
+			
+			//Draw_Graph(area, window, 1, 2, false, estimateHistory.Skip(skip_count).Select(t => t.Item1), gc_red);
+			Draw_Graph(area, window, 1, 2, false, estimateHistory.Skip(skip_count).Select(t => t.Item2), gc_blue);
 
-			//Draw_Graph(area, window, 1, 2, false, estimateHistory.Skip(skip_count).Select(t => t.Item1), gc_first_estimate);
-			Draw_Graph(area, window, 1, 2, false, estimateHistory.Skip(skip_count).Select(t => t.Item2), gc_last_estimate);
-			Draw_Graph(area, window, 5000, 60000, true, chipHistory.Skip(skip_count).Select(c => (float)c), gc_chips);
+			Draw_Graph(area, window, 5000, 60000, true, chipHistory.Skip(skip_count).Select(c => (double)c), gc_chips);
+
+			Draw_Graph(area, window, 1, 2, false, correlationHistory.Skip(skip_count).Select(y => y+1), gc_red);
 		}
 
-		void Draw_Graph(Rectangle area, Gdk.Window window, float y_grid, float y_max, bool grid, IEnumerable<float> data, Gdk.GC gc) {
+		void Draw_Graph(Rectangle area, Gdk.Window window, double y_grid, double y_max, bool grid, IEnumerable<double> data, Gdk.GC gc) {
 			int y_intervals = (int)Math.Ceiling(y_max / y_grid);
 
-			float offset_x = area.Left;
-			float offset_y = area.Bottom;
-			float scale_x = area.Width / (float)(data.Count() + 1);
-			float scale_y = -area.Height / (y_grid * y_intervals);
+			double offset_x = area.Left;
+			double offset_y = area.Bottom;
+			double scale_x = area.Width / (double)(data.Count() + 1);
+			double scale_y = -area.Height / (y_grid * y_intervals);
 
 			if (grid) {
 				for (int i = 0; i <= y_intervals; i++) {
@@ -200,7 +210,7 @@ namespace Cygni.PokerClient
 			window.DrawLines(gc, points.ToArray());
 		}
 
-		public void BotChose(Action action, float estimate) {
+		public void BotChose(Action action, double estimate) {
 			AddPlayLogMessage("", action.Amount.ToString(), "", string.Format("{0}, Estimate: {1}", action.ActionType, estimate));
 			if (action.ActionType == ActionType.FOLD)
 				folded = true;
@@ -241,6 +251,28 @@ namespace Cygni.PokerClient
 			foreach (var p in e.PlayersShowDown) {
 				AddPlayLogMessage("", "", "", string.Format("{0} had a {1}", p.Player.Name, p.Hand.PokerHand));
 			}
+		}
+
+		void UpdateCorrelation() {
+			if (chipHistory.Count < 2) {
+				correlationHistory.Add(0);
+				return;
+			}
+
+			System.Diagnostics.Debug.Assert(diffHistory.Count == estimateHistory.Count);
+
+			var chip_data = diffHistory.Reverse<double>().Take(200);
+			var estimate_data = estimateHistory.Reverse<Tuple<double,double>>().Take(200).Select(t => t.Item2);
+
+			var chip_mean = chip_data.Average();
+			var estimate_mean = estimate_data.Average();
+
+			var cov_sum = chip_data.Zip(estimate_data, (v1, v2) => (v1 - chip_mean) * (v2 - estimate_mean)).Sum();
+			var chip_var = chip_data.Sum(x => Math.Pow(x - chip_mean, 2));
+			var estimate_var = estimate_data.Sum(x => Math.Pow(x - estimate_mean, 2));
+
+			double corr = cov_sum / Math.Sqrt(chip_var * estimate_var);
+			correlationHistory.Add(corr);
 		}
 	}
 }

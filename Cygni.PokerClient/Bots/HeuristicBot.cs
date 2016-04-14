@@ -13,7 +13,7 @@ namespace Cygni.PokerClient.Bots
 {
 	class HeuristicBot : AbstractBot
 	{
-		const int ESTIMATE_SAMPLE_COUNT = 500;
+		const int ESTIMATE_SAMPLE_COUNT = 200;
 		const int STARTING_CHIPS = 10000;
 
 		private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -48,10 +48,12 @@ namespace Cygni.PokerClient.Bots
 
 			Action choice = Decide(request, state);
 			// Always check if able.
-			if (choice == null || (choice.ActionType == ActionType.FOLD && request.Check != null))
-				choice = request.Check;
-			if (choice == null)
-				choice = request.Fold;
+			if (choice == null) {
+				if (request.Check != null)
+					choice = request.Check;
+				else
+					choice = request.Fold;
+			}
 			
 			spentThisPlay += choice.Amount;
 			return choice;
@@ -72,59 +74,159 @@ namespace Cygni.PokerClient.Bots
 
 		const double PF_LAST_RESORT_THRESHOLD = 0.3;
 
-		double PF_Optimistic { get { return winEstimate - 0.8; } }
-		double PF_Optimistic_Raise_Fraction { get { return 0.25 + PF_Optimistic * 1.0 + SpentFraction * 0.1; } }
-		double PF_Optimistic_Call_Fraction { get { return 0.4 + PF_Optimistic * 1.0 + SpentFraction * 0.1; } }
+		double PF_Optimistic { get { return winEstimate - 0.7; } }
+		double PF_Optimistic_Raise_Fraction { get { return 0.1 + PF_Optimistic * 0.2 + SpentFraction * 0.5; } }
+		double PF_Optimistic_Call_Fraction { get { return 0.4 + PF_Optimistic * 1.0 + SpentFraction * 0.5; } }
 
-		double PF_Cautious { get { return winEstimate - 0.5 + SpentFraction * 0.1; } }
-		double PF_Cautious_Call_Fraction { get { return 0.25 + PF_Cautious * 0.25; } }
+		double PF_Cautious { get { return winEstimate - 0.5 + SpentFraction * 0.2; } }
+		double PF_Cautious_Call_Fraction { get { return 0.25 + PF_Cautious * 0.5; } }
 
-		double PF_Optimistic_Raise_Limit { get { return chips * PF_Optimistic_Raise_Fraction; } }
-		double PF_Optimistic_Call_Limit { get { return chips * PF_Optimistic_Call_Fraction; } }
-		double PF_Cautious_Call_Limit { get { return chips * PF_Cautious_Call_Fraction; } }
+		double PF_Optimistic_Raise_Limit { get { return chips * PF_Optimistic_Raise_Fraction - spentThisPlay; } }
+		double PF_Optimistic_Call_Limit { get { return chips * PF_Optimistic_Call_Fraction - spentThisPlay; } }
+		double PF_Cautious_Call_Limit { get { return chips * PF_Cautious_Call_Fraction - spentThisPlay; } }
 
 		Action Decide_PreFlop(ActionRequest request, GameState state) {
 			var may_raise = request.Raise != null;
 			var may_call = request.Call != null;
 
 			// Go all in as a last resort when really low on money.
-			if (chips <= state.BigBlind && winEstimate > PF_LAST_RESORT_THRESHOLD)
-				return request.AllIn;
-			else if ((chips - spentThisPlay) <= state.SmallBlind)
-				return request.AllIn;
+            if ((chips - spentThisPlay) <= state.BigBlind) {
+                logger.Debug("PreFlop - Desperate, go all in.");   
+                return request.AllIn;
+            }
+            else if ((chips - spentThisPlay) <= state.SmallBlind) {
+                logger.Debug("PreFlop - Desperate, go all in.");
+                return request.AllIn;
+            }
 
 			// Be very cautious about calling for unusually large amounts.
 			if (may_call && spentThisPlay > 0 && request.Call.Amount > spentThisPlay * 3) {
-				if (PF_Optimistic > 0)
-					return request.Call;
-				else
-					return request.Check;
+                if (PF_Optimistic > 0) {
+                    logger.Debug("PreFlop - Optimistic, so call larger sum.");
+                    return request.Call;
+                }
+                else {
+                    logger.Debug("PreFlop - Don't want to call larger sum.");
+                    return request.Check;
+                }
 			}
 
 			// Raise/call up to a portion of our chips if estimated really good chances.
-			if (PF_Optimistic > 0 && may_raise && request.Raise.Amount < PF_Optimistic_Raise_Limit)
-				return request.Raise;
-			else if (PF_Optimistic > 0 && may_call && request.Call.Amount < PF_Optimistic_Call_Limit)
-				return request.Call;
+            if (PF_Optimistic > 0 && may_raise && request.Raise.Amount < PF_Optimistic_Raise_Limit) {
+                logger.Debug("PreFlop - Optimistic ({0}) so raise ({1}<{2})", PF_Optimistic, request.Raise.Amount, PF_Optimistic_Raise_Limit);
+                return request.Raise;
+            }
+            else if (PF_Optimistic > 0 && may_call && request.Call.Amount < PF_Optimistic_Call_Limit) {
+                logger.Debug("PreFlop - Optimistic ({0}) so call ({1}<{2})", PF_Optimistic, request.Call.Amount, PF_Optimistic_Call_Limit);
+                return request.Call;
+            }
 
 			// Call up to a portion of out chips if estimated ok chances.
-			if (PF_Cautious > 0 && may_call && request.Call.Amount < (chips * PF_Cautious_Call_Limit - spentThisPlay))
-				return request.Call;
+            if (PF_Cautious > 0 && may_call && request.Call.Amount < PF_Cautious_Call_Limit) {
+                logger.Debug("PreFlop - Cautious ({0}) so raise ({1}<{2})", PF_Cautious, request.Call.Amount, PF_Cautious_Call_Limit);
+                return request.Call;
+            }
 
 			// Always try to check if able.
+            logger.Debug("PreFlop - Not feeling it, try and check...");
 			return request.Check;
 		}
 
+        double F_Optimistic { get { return winEstimate - 0.7; } }
+        double F_Optimistic_Raise_Fraction { get { return 0.25 + F_Optimistic * 0.5 + SpentFraction * 0.5; } }
+        double F_Optimistic_Call_Fraction { get { return 0.4 + F_Optimistic * 1.0 + SpentFraction * 0.5; } }
+
+        double F_Cautious { get { return winEstimate - 0.5 + SpentFraction * 0.2; } }
+        double F_Cautious_Call_Fraction { get { return 0.25 + F_Cautious * 0.5; } }
+
+        double F_Optimistic_Raise_Limit { get { return chips * F_Optimistic_Raise_Fraction - spentThisPlay; } }
+        double F_Optimistic_Call_Limit { get { return chips * F_Optimistic_Call_Fraction - spentThisPlay; } }
+        double F_Cautious_Call_Limit { get { return chips * F_Cautious_Call_Fraction - spentThisPlay; } }
+
 		Action Decide_PostFlop(ActionRequest request, GameState state) {
-			return Decide_PreFlop(request, state);
+            var may_raise = request.Raise != null;
+            var may_call = request.Call != null;
+
+            // Go all in as a last resort when really low on money.
+            if (chips <= state.BigBlind && winEstimate > PF_LAST_RESORT_THRESHOLD) {
+                logger.Debug("PostFlop - Desperate, go all in.");   
+                return request.AllIn;
+            }
+            else if ((chips - spentThisPlay) <= state.SmallBlind) {
+                logger.Debug("PostFlop - Desperate, go all in.");
+                return request.AllIn;
+            }
+
+            // Be very cautious about calling for unusually large amounts.
+            if (may_call && spentThisPlay > 0 && request.Call.Amount > spentThisPlay * 3) {
+                if (F_Optimistic > 0 && request.Call.Amount < spentThisPlay * (1 + winEstimate)) {
+                    logger.Debug("PostFlop - Optimistic, so call larger sum.");
+                    return request.Call;
+                }
+                else {
+                    logger.Debug("PostFlop - Don't want to call larger sum.");
+                    return request.Check;
+                }
+            }
+
+            // Raise/call up to a portion of our chips if estimated really good chances.
+            if (F_Optimistic > 0 && may_raise && request.Raise.Amount < F_Optimistic_Raise_Limit) {
+                logger.Debug("PostFlop - Optimistic ({0}) so raise ({1}<{2})", F_Optimistic, request.Raise.Amount, F_Optimistic_Raise_Limit);
+                return request.Raise;
+            }
+            else if (F_Optimistic > 0 && may_call && request.Call.Amount < F_Optimistic_Call_Limit) {
+                logger.Debug("PostFlop - Optimistic ({0}) so call ({1}<{2})", F_Optimistic, request.Call.Amount, F_Optimistic_Call_Limit);
+                return request.Call;
+            }
+
+            // Call up to a portion of out chips if estimated ok chances.
+            if (F_Cautious > 0 && may_call && request.Call.Amount < F_Cautious_Call_Limit) {
+                logger.Debug("PostFlop - Cautious ({0}) so raise ({1}<{2})", F_Cautious, request.Call.Amount, F_Cautious_Call_Limit);
+                return request.Call;
+            }
+
+            // Always try to check if able.
+            logger.Debug("PostFlop - Not feeling it, try and check...");
+            return request.Check;
 		}
 
 		Action Decide_PostTurn(ActionRequest request, GameState state) {
-			return Decide_PreFlop(request, state);
+			return Decide_PostFlop(request, state);
 		}
 
 		Action Decide_PostRiver(ActionRequest request, GameState state) {
-			return Decide_PreFlop(request, state);
+			// Check if able, then call, maybe go all in, and fold if needed.
+            if (request.Check != null) {
+                logger.Debug("PostRiver - Check because we can.");
+                return request.Check;
+            }
+            else if (request.Call != null && winEstimate > 0.3) {
+                if (request.Call.Amount < spentThisPlay * (0.5 + winEstimate * 0.5)) {
+                    logger.Debug("PostRiver - Call {0} ({1})", request.Call.Amount, winEstimate);
+                    return request.Call;
+                }
+                else if (request.Call.Amount < spentThisPlay * 2 && winEstimate > 0.9) {
+                    logger.Debug("PostRiver - Expensive call {0} ({1})", request.Call.Amount, winEstimate);
+                    return request.Call;
+                }
+                else {
+                    logger.Debug("PostRiver - Call to expensive, fold.");
+                    return request.Fold;
+                }
+            }
+            else if (request.Call == null) {
+                if (winEstimate > 0.7 && request.AllIn.Amount < spentThisPlay) {
+                    logger.Debug("PostRiver - Can't call but good chance to win so go all in.");
+                    return request.AllIn;
+                }
+                else if (winEstimate > 0.9 && request.AllIn.Amount < spentThisPlay * 3) {
+                    logger.Debug("PostRiver - Can't call but really good chance to win so go all in.");
+                    return request.AllIn;
+                }
+            }
+            //
+            logger.Debug("PostRiver - No confidence, fold.");
+            return request.Fold;
 		}
 
 		void Reset() {
