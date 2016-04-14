@@ -162,7 +162,7 @@ namespace Cygni.PokerClient.Game
         private void OnPlayerChecked(PlayerCheckedEvent e)
         {
             logger.Debug("{0} checked", e.Player);
-            PlayersInCurrentPlay.Remove(e.Player);
+            //PlayersInCurrentPlay.Remove(e.Player);
         }
 
         private void OnPlayerCalled(PlayerCalledEvent e)

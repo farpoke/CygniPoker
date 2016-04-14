@@ -7,9 +7,9 @@
   <import>
     <widget-library name="../bin/Debug/Cygni.PokerClient.exe" internal="true" />
   </import>
-  <widget class="Gtk.Window" id="Cygni.PokerClient.StatusWindow" design-size="823 579">
+  <widget class="Gtk.Window" id="Cygni.PokerClient.StatusWindow" design-size="1173 727">
     <property name="MemberName" />
-    <property name="Title" translatable="yes">StatusWindow</property>
+    <property name="Title" translatable="yes">Cygni Poker</property>
     <property name="WindowPosition">CenterOnParent</property>
     <child>
       <widget class="Gtk.VBox" id="vbox2">
@@ -19,9 +19,12 @@
           <widget class="Gtk.Statusbar" id="topStatus">
             <property name="MemberName" />
             <property name="Spacing">6</property>
+            <property name="HasResizeGrip">False</property>
             <child>
               <widget class="Gtk.Label" id="topLabelLeft">
                 <property name="MemberName" />
+                <property name="Xpad">10</property>
+                <property name="LabelProp" translatable="yes">Table</property>
               </widget>
               <packing>
                 <property name="Position">1</property>
@@ -33,6 +36,8 @@
             <child>
               <widget class="Gtk.Label" id="topLabelRight">
                 <property name="MemberName" />
+                <property name="Xpad">10</property>
+                <property name="LabelProp" translatable="yes">Play</property>
               </widget>
               <packing>
                 <property name="Position">2</property>
@@ -50,8 +55,61 @@
           </packing>
         </child>
         <child>
-          <widget class="Gtk.DrawingArea" id="drawingArea">
+          <widget class="Gtk.HPaned" id="hpaned1">
             <property name="MemberName" />
+            <property name="CanFocus">True</property>
+            <property name="Position">813</property>
+            <child>
+              <widget class="Gtk.DrawingArea" id="drawingArea">
+                <property name="MemberName" />
+              </widget>
+              <packing>
+                <property name="Resize">False</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="Gtk.VPaned" id="vpaned1">
+                <property name="MemberName" />
+                <property name="CanFocus">True</property>
+                <property name="Position">176</property>
+                <child>
+                  <widget class="Gtk.ScrolledWindow" id="GtkScrolledWindow1">
+                    <property name="MemberName" />
+                    <property name="ShadowType">In</property>
+                    <child>
+                      <widget class="Gtk.TextView" id="tableResultText">
+                        <property name="MemberName" />
+                        <property name="CanFocus">True</property>
+                        <property name="ShowScrollbars">True</property>
+                        <property name="Editable">False</property>
+                        <property name="CursorVisible">False</property>
+                        <property name="Text" translatable="yes" />
+                        <property name="LeftMargin">2</property>
+                        <property name="RightMargin">2</property>
+                      </widget>
+                    </child>
+                  </widget>
+                  <packing>
+                    <property name="Resize">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="Gtk.ScrolledWindow" id="GtkScrolledWindow">
+                    <property name="MemberName" />
+                    <property name="ShadowType">In</property>
+                    <child>
+                      <widget class="Gtk.TreeView" id="logView">
+                        <property name="MemberName" />
+                        <property name="CanFocus">True</property>
+                        <property name="ShowScrollbars">True</property>
+                        <property name="EnableSearch">False</property>
+                        <property name="HeadersVisible">False</property>
+                      </widget>
+                    </child>
+                  </widget>
+                </child>
+              </widget>
+            </child>
           </widget>
           <packing>
             <property name="Position">1</property>
@@ -65,6 +123,8 @@
             <child>
               <widget class="Gtk.Label" id="bottomLabelLeft">
                 <property name="MemberName" />
+                <property name="Xpad">10</property>
+                <property name="LabelProp" translatable="yes">Chips</property>
               </widget>
               <packing>
                 <property name="Position">1</property>
@@ -76,6 +136,8 @@
             <child>
               <widget class="Gtk.Label" id="bottomLabelRight">
                 <property name="MemberName" />
+                <property name="Xpad">10</property>
+                <property name="LabelProp" translatable="yes">Estimate</property>
               </widget>
               <packing>
                 <property name="Position">2</property>

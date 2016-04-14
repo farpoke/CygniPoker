@@ -13,7 +13,7 @@ namespace Cygni.PokerClient.Bots
     abstract class AbstractBot
     {
 
-        public string Name {
+        public virtual string Name {
             get { return "Phoenix-" + GetType().Name; }
         }
 

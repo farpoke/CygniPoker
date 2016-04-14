@@ -12,7 +12,19 @@ namespace Cygni.PokerClient
 		
 		private global::Gtk.Label topLabelRight;
 		
+		private global::Gtk.HPaned hpaned1;
+		
 		private global::Gtk.DrawingArea drawingArea;
+		
+		private global::Gtk.VPaned vpaned1;
+		
+		private global::Gtk.ScrolledWindow GtkScrolledWindow1;
+		
+		private global::Gtk.TextView tableResultText;
+		
+		private global::Gtk.ScrolledWindow GtkScrolledWindow;
+		
+		private global::Gtk.TreeView logView;
 		
 		private global::Gtk.Statusbar bottomStatus;
 		
@@ -25,7 +37,7 @@ namespace Cygni.PokerClient
 			global::Stetic.Gui.Initialize (this);
 			// Widget Cygni.PokerClient.StatusWindow
 			this.Name = "Cygni.PokerClient.StatusWindow";
-			this.Title = global::Mono.Unix.Catalog.GetString ("StatusWindow");
+			this.Title = global::Mono.Unix.Catalog.GetString ("Cygni Poker");
 			this.WindowPosition = ((global::Gtk.WindowPosition)(4));
 			// Container child Cygni.PokerClient.StatusWindow.Gtk.Container+ContainerChild
 			this.vbox2 = new global::Gtk.VBox ();
@@ -35,9 +47,12 @@ namespace Cygni.PokerClient
 			this.topStatus = new global::Gtk.Statusbar ();
 			this.topStatus.Name = "topStatus";
 			this.topStatus.Spacing = 6;
+			this.topStatus.HasResizeGrip = false;
 			// Container child topStatus.Gtk.Box+BoxChild
 			this.topLabelLeft = new global::Gtk.Label ();
 			this.topLabelLeft.Name = "topLabelLeft";
+			this.topLabelLeft.Xpad = 10;
+			this.topLabelLeft.LabelProp = global::Mono.Unix.Catalog.GetString ("Table");
 			this.topStatus.Add (this.topLabelLeft);
 			global::Gtk.Box.BoxChild w1 = ((global::Gtk.Box.BoxChild)(this.topStatus [this.topLabelLeft]));
 			w1.Position = 1;
@@ -46,6 +61,8 @@ namespace Cygni.PokerClient
 			// Container child topStatus.Gtk.Box+BoxChild
 			this.topLabelRight = new global::Gtk.Label ();
 			this.topLabelRight.Name = "topLabelRight";
+			this.topLabelRight.Xpad = 10;
+			this.topLabelRight.LabelProp = global::Mono.Unix.Catalog.GetString ("Play");
 			this.topStatus.Add (this.topLabelRight);
 			global::Gtk.Box.BoxChild w2 = ((global::Gtk.Box.BoxChild)(this.topStatus [this.topLabelRight]));
 			w2.Position = 2;
@@ -57,11 +74,53 @@ namespace Cygni.PokerClient
 			w3.Expand = false;
 			w3.Fill = false;
 			// Container child vbox2.Gtk.Box+BoxChild
+			this.hpaned1 = new global::Gtk.HPaned ();
+			this.hpaned1.CanFocus = true;
+			this.hpaned1.Name = "hpaned1";
+			this.hpaned1.Position = 813;
+			// Container child hpaned1.Gtk.Paned+PanedChild
 			this.drawingArea = new global::Gtk.DrawingArea ();
 			this.drawingArea.Name = "drawingArea";
-			this.vbox2.Add (this.drawingArea);
-			global::Gtk.Box.BoxChild w4 = ((global::Gtk.Box.BoxChild)(this.vbox2 [this.drawingArea]));
-			w4.Position = 1;
+			this.hpaned1.Add (this.drawingArea);
+			global::Gtk.Paned.PanedChild w4 = ((global::Gtk.Paned.PanedChild)(this.hpaned1 [this.drawingArea]));
+			w4.Resize = false;
+			// Container child hpaned1.Gtk.Paned+PanedChild
+			this.vpaned1 = new global::Gtk.VPaned ();
+			this.vpaned1.CanFocus = true;
+			this.vpaned1.Name = "vpaned1";
+			this.vpaned1.Position = 176;
+			// Container child vpaned1.Gtk.Paned+PanedChild
+			this.GtkScrolledWindow1 = new global::Gtk.ScrolledWindow ();
+			this.GtkScrolledWindow1.Name = "GtkScrolledWindow1";
+			this.GtkScrolledWindow1.ShadowType = ((global::Gtk.ShadowType)(1));
+			// Container child GtkScrolledWindow1.Gtk.Container+ContainerChild
+			this.tableResultText = new global::Gtk.TextView ();
+			this.tableResultText.CanFocus = true;
+			this.tableResultText.Name = "tableResultText";
+			this.tableResultText.Editable = false;
+			this.tableResultText.CursorVisible = false;
+			this.tableResultText.LeftMargin = 2;
+			this.tableResultText.RightMargin = 2;
+			this.GtkScrolledWindow1.Add (this.tableResultText);
+			this.vpaned1.Add (this.GtkScrolledWindow1);
+			global::Gtk.Paned.PanedChild w6 = ((global::Gtk.Paned.PanedChild)(this.vpaned1 [this.GtkScrolledWindow1]));
+			w6.Resize = false;
+			// Container child vpaned1.Gtk.Paned+PanedChild
+			this.GtkScrolledWindow = new global::Gtk.ScrolledWindow ();
+			this.GtkScrolledWindow.Name = "GtkScrolledWindow";
+			this.GtkScrolledWindow.ShadowType = ((global::Gtk.ShadowType)(1));
+			// Container child GtkScrolledWindow.Gtk.Container+ContainerChild
+			this.logView = new global::Gtk.TreeView ();
+			this.logView.CanFocus = true;
+			this.logView.Name = "logView";
+			this.logView.EnableSearch = false;
+			this.logView.HeadersVisible = false;
+			this.GtkScrolledWindow.Add (this.logView);
+			this.vpaned1.Add (this.GtkScrolledWindow);
+			this.hpaned1.Add (this.vpaned1);
+			this.vbox2.Add (this.hpaned1);
+			global::Gtk.Box.BoxChild w10 = ((global::Gtk.Box.BoxChild)(this.vbox2 [this.hpaned1]));
+			w10.Position = 1;
 			// Container child vbox2.Gtk.Box+BoxChild
 			this.bottomStatus = new global::Gtk.Statusbar ();
 			this.bottomStatus.Name = "bottomStatus";
@@ -69,30 +128,34 @@ namespace Cygni.PokerClient
 			// Container child bottomStatus.Gtk.Box+BoxChild
 			this.bottomLabelLeft = new global::Gtk.Label ();
 			this.bottomLabelLeft.Name = "bottomLabelLeft";
+			this.bottomLabelLeft.Xpad = 10;
+			this.bottomLabelLeft.LabelProp = global::Mono.Unix.Catalog.GetString ("Chips");
 			this.bottomStatus.Add (this.bottomLabelLeft);
-			global::Gtk.Box.BoxChild w5 = ((global::Gtk.Box.BoxChild)(this.bottomStatus [this.bottomLabelLeft]));
-			w5.Position = 1;
-			w5.Expand = false;
-			w5.Fill = false;
+			global::Gtk.Box.BoxChild w11 = ((global::Gtk.Box.BoxChild)(this.bottomStatus [this.bottomLabelLeft]));
+			w11.Position = 1;
+			w11.Expand = false;
+			w11.Fill = false;
 			// Container child bottomStatus.Gtk.Box+BoxChild
 			this.bottomLabelRight = new global::Gtk.Label ();
 			this.bottomLabelRight.Name = "bottomLabelRight";
+			this.bottomLabelRight.Xpad = 10;
+			this.bottomLabelRight.LabelProp = global::Mono.Unix.Catalog.GetString ("Estimate");
 			this.bottomStatus.Add (this.bottomLabelRight);
-			global::Gtk.Box.BoxChild w6 = ((global::Gtk.Box.BoxChild)(this.bottomStatus [this.bottomLabelRight]));
-			w6.Position = 2;
-			w6.Expand = false;
-			w6.Fill = false;
+			global::Gtk.Box.BoxChild w12 = ((global::Gtk.Box.BoxChild)(this.bottomStatus [this.bottomLabelRight]));
+			w12.Position = 2;
+			w12.Expand = false;
+			w12.Fill = false;
 			this.vbox2.Add (this.bottomStatus);
-			global::Gtk.Box.BoxChild w7 = ((global::Gtk.Box.BoxChild)(this.vbox2 [this.bottomStatus]));
-			w7.Position = 2;
-			w7.Expand = false;
-			w7.Fill = false;
+			global::Gtk.Box.BoxChild w13 = ((global::Gtk.Box.BoxChild)(this.vbox2 [this.bottomStatus]));
+			w13.Position = 2;
+			w13.Expand = false;
+			w13.Fill = false;
 			this.Add (this.vbox2);
 			if ((this.Child != null)) {
 				this.Child.ShowAll ();
 			}
-			this.DefaultWidth = 823;
-			this.DefaultHeight = 579;
+			this.DefaultWidth = 1173;
+			this.DefaultHeight = 727;
 			this.Show ();
 		}
 	}

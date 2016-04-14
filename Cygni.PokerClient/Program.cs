@@ -22,7 +22,7 @@ namespace Cygni.PokerClient
         private const int portNumber = 4711;
         private const string roomName = "TRAINING";
         private static Logger logger = LogManager.GetCurrentClassLogger();
-        private static AbstractBot bot;
+        private static HeuristicBot bot;
 		private static StatusWindow statusWindow;
 
 		private static bool shouldQuit = false;
@@ -39,8 +39,7 @@ namespace Cygni.PokerClient
 				Application.RunIteration();
 		}
 
-        static void Run() {
-			statusWindow.Show();
+        static void RunGame() {
             using (var socket = new TexasServerSocket(serverName, portNumber)) {
 
                 var gameState = new GameState();
@@ -58,6 +57,7 @@ namespace Cygni.PokerClient
                             var action = bot.Act(request, gameState);
                             var response = new ActionResponse(action, request.RequestId);
                             logger.Debug("Bot chose to {0} for ${1}", action.ActionType, action.Amount);
+							statusWindow.BotChose(action, bot.WinEstimate);
                             socket.Send(response);
                         }
                         else {
@@ -66,6 +66,7 @@ namespace Cygni.PokerClient
 							statusWindow.UpdateFrom(msg, gameState);
                             if (msg is TableIsDoneEvent) {
                                 logger.Info("View at http://{0}/showgame/table/{1}", serverName, gameState.TableId);
+								return;
                             }
                         }
 						PumpGtk();
@@ -82,9 +83,14 @@ namespace Cygni.PokerClient
 				Application.Init();
 				statusWindow = new StatusWindow();
 				statusWindow.Destroyed += (sender, e) => { shouldQuit = true; };
+				statusWindow.Show();
+				//
 				bot = new HeuristicBot();
+				statusWindow.BotName = bot.Name;
+				//
                 PrintInfo();
-                Run();
+				while (!shouldQuit)
+                	RunGame();
             }
             catch (ServerShutdownException) {
                 logger.Fatal("Server Shutdown. Bye!");
